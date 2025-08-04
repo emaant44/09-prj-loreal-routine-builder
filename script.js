@@ -192,8 +192,62 @@ categoryFilter.addEventListener("change", async (e) => {
 });
 
 /* Chat form submission handler - placeholder for OpenAI integration */
-chatForm.addEventListener("submit", (e) => {
+// Handle chat form submit, send user's message to Cloudflare Worker, and display AI response
+chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  chatWindow.innerHTML = "Connect to the OpenAI API for a response!";
+  // Get user message and clear input
+  const userInputElem = document.getElementById("userInput");
+  const userMsg = userInputElem.value.trim();
+  if (!userMsg) return;
+  userInputElem.value = "";
+
+  // Add user's message to chat window (optional, improves user feedback)
+  chatWindow.innerHTML += `<div class="chat-msg user">${userMsg}</div>`;
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+
+  // Show typing animation for bot
+  const typingBubble = document.createElement("div");
+  typingBubble.className = "chat-msg bot typing";
+  typingBubble.innerHTML = `<span></span><span></span><span></span>`;
+  chatWindow.appendChild(typingBubble);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+
+  // Build conversation as an array of messages (role/content format expected by OpenAI)
+  // Add a system prompt to encourage a friendly, conversational tone
+  const messages = [
+    {
+      role: "system",
+      content:
+        "You are a friendly skincare and beauty assistant for L'Oréal. Always reply in a natural, conversational way. Use line breaks or bullet points to make your answers easy to read.",
+    },
+    { role: "user", content: userMsg },
+  ];
+
+  // POST to your Cloudflare Worker endpoint
+  try {
+    const response = await fetch(
+      "https://routineloreal.emaantovska2005.workers.dev/",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+      }
+    );
+
+    const data = await response.json();
+    // For your Worker, the AI's reply is likely at: data.choices[0].message.content
+    const botReply =
+      data.choices?.[0]?.message?.content?.replace(/\n/g, "<br>") ||
+      data.reply?.content?.replace(/\n/g, "<br>") ||
+      "Sorry, AI could not be reached.";
+
+    // Remove typing animation and show bot reply as a chat bubble
+    typingBubble.remove();
+    chatWindow.innerHTML += `<div class="chat-msg bot">${botReply}</div>`;
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  } catch (err) {
+    typingBubble.remove();
+    chatWindow.innerHTML += `<div class="chat-msg error">Error: ${err.message}</div>`;
+  }
 });
