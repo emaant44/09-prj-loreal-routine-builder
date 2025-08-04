@@ -472,3 +472,19 @@ body {
 .generate-btn i {
   margin-right: 8px;
 }
+
+/* RTL support for product grid */
+html[dir="rtl"] .products-grid {
+  flex-direction: row-reverse;
+}
+
+/* RTL support for selected products section */
+html[dir="rtl"] .selected-products {
+  direction: rtl;
+}
+
+/* RTL support for chat interface */
+html[dir="rtl"] .chatbox,
+html[dir="rtl"] .chat-window {
+  direction: rtl;
+}
