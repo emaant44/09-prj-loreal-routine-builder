@@ -1,3 +1,121 @@
+/* Remove CTA button style for selected products */
+.remove-btn {
+  background: #d64fad;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.remove-btn:hover {
+  background: #eeece9;
+  color: #c71a85;
+}
+/* Add CTA button style for product cards */
+.add-btn {
+  background: #d64fad;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.add-btn:hover {
+  background: #eeece9;
+  color: #c71a85;
+}
+/* Drag-and-drop feedback for selected products area */
+.drag-over {
+  background: #f3e6f3;
+  border: 2px dashed #d64fad;
+}
+
+/* Style for selected product cards */
+.product-card.selected {
+  opacity: 0.85;
+  border-color: #d64fad;
+  box-shadow: 0 2px 12px rgba(214, 79, 173, 0.1);
+}
+/* Description CTA button style for product cards */
+.desc-btn {
+  background: #d64fad;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.2s;
+}
+.desc-btn:hover {
+  background: #eeece9;
+  color: #c71a85;
+}
+/* Modal background overlay with blur */
+.modal-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal box styling */
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  max-width: 400px;
+  width: 90vw;
+  text-align: center;
+  position: relative;
+}
+
+.modal h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: #de57ae;
+}
+
+.modal p {
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.close-modal {
+  background: #d64fad;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.close-modal:hover {
+  background: #eeece9;
+  color: #c71a85;
+}
 /* —— basic reset —— */
 * {
   box-sizing: border-box;
@@ -11,6 +129,12 @@ body {
   color: #333;
   display: flex;
   justify-content: center;
+
+  /* Set the background image for the whole page */
+  background-image: url("./img/makeup.jpg");
+  background-size: cover; /* Make the image cover the whole background */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+  background-position: center; /* Center the image */
 }
 
 .page-wrapper {
@@ -49,7 +173,7 @@ body {
   border: 2px solid #000;
   border-radius: 8px;
   cursor: pointer;
-  background-color: white;
+  background-color: rgb(240, 236, 236);
   font-weight: 500;
 }
 
@@ -64,6 +188,7 @@ body {
   border: 2px solid #000;
   border-radius: 8px;
   padding: 26px;
+  background: #e9dfdf;
 }
 
 .chatbox h2 {
@@ -77,7 +202,7 @@ body {
   line-height: 1.5;
   height: 250px;
   overflow-y: auto;
-  background: #fafafa;
+  background: #ec8cb2;
   margin-bottom: 20px;
 }
 
@@ -86,7 +211,7 @@ body {
   width: 100%;
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: #0f0e0e;
   font-size: 18px;
 }
 
@@ -102,7 +227,7 @@ body {
   padding: 12px;
   font-size: 18px;
   border: none;
-  border-bottom: 2px solid #ccc;
+  border-bottom: 2px solid #0e0c0c;
   background: transparent;
 }
 
@@ -186,6 +311,14 @@ body {
   display: flex;
   gap: 15px;
   min-height: 160px;
+  background: #fff; /* White background for contrast */
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+
+.product-card:hover {
+  box-shadow: 0 8px 32px rgba(214, 79, 173, 0.18);
+  transform: translateY(-6px) scale(1.03);
+  border-color: #d64fad;
 }
 
 .product-card img {
@@ -219,6 +352,7 @@ body {
   padding: 20px;
   border: 2px solid #000;
   border-radius: 8px;
+  background: #dfd5d5;
 }
 
 .selected-products h2 {

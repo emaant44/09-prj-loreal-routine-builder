@@ -19,20 +19,162 @@ async function loadProducts() {
 }
 
 /* Create HTML for displaying product cards */
+
+// Store selected products in an array
+let selectedProducts = [];
+
 function displayProducts(products) {
-  productsContainer.innerHTML = products
+  // Only show products that are not selected
+  const unselectedProducts = products.filter(
+    (product) => !selectedProducts.some((p) => p.id === product.id)
+  );
+  productsContainer.innerHTML = unselectedProducts
     .map(
       (product) => `
-    <div class="product-card">
+    <div class="product-card" data-id="${product.id}">
       <img src="${product.image}" alt="${product.name}">
       <div class="product-info">
         <h3>${product.name}</h3>
         <p>${product.brand}</p>
+        <button class="desc-btn" data-id="${product.id}">Description</button>
+        <button class="add-btn" data-id="${product.id}">Add</button>
       </div>
     </div>
   `
     )
     .join("");
+
+  // Add event listeners to all description buttons
+  const descButtons = document.querySelectorAll(".desc-btn");
+  descButtons.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const productId = parseInt(btn.getAttribute("data-id"));
+      const products = await loadProducts();
+      const product = products.find((p) => p.id === productId);
+      if (product) {
+        showModal(product.name, product.description);
+      }
+    });
+  });
+
+  // Add event listeners to all add buttons
+  const addButtons = document.querySelectorAll(".add-btn");
+  addButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const productId = parseInt(btn.getAttribute("data-id"));
+      // Find the product in the current products array
+      const product = products.find((p) => p.id === productId);
+      if (product && !selectedProducts.some((p) => p.id === productId)) {
+        selectedProducts.push(product);
+        updateSelectedProducts();
+        // Remove the product card from the current view only
+        btn.closest(".product-card").remove();
+      }
+    });
+  });
+}
+
+// Make selected products area a drop target
+const selectedProductsList = document.getElementById("selectedProductsList");
+if (selectedProductsList) {
+  selectedProductsList.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    selectedProductsList.classList.add("drag-over");
+  });
+  selectedProductsList.addEventListener("dragleave", (e) => {
+    selectedProductsList.classList.remove("drag-over");
+  });
+  selectedProductsList.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    selectedProductsList.classList.remove("drag-over");
+    const productId = parseInt(e.dataTransfer.getData("text/plain"));
+    const products = await loadProducts();
+    const product = products.find((p) => p.id === productId);
+    if (product && !selectedProducts.some((p) => p.id === productId)) {
+      selectedProducts.push(product);
+      updateSelectedProducts();
+      displayProducts(products);
+    }
+  });
+}
+
+function updateSelectedProducts() {
+  selectedProductsList.innerHTML = selectedProducts
+    .map(
+      (product) => `
+      <div class="product-card selected" data-id="${product.id}">
+        <img src="${product.image}" alt="${product.name}">
+        <div class="product-info">
+          <h3>${product.name}</h3>
+          <p>${product.brand}</p>
+          <button class="desc-btn" data-id="${product.id}">Description</button>
+          <button class="remove-btn" data-id="${product.id}">Remove</button>
+        </div>
+      </div>
+    `
+    )
+    .join("");
+
+  // Add event listeners to all description buttons in selected products
+  const descButtons = selectedProductsList.querySelectorAll(".desc-btn");
+  descButtons.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const productId = parseInt(btn.getAttribute("data-id"));
+      const products = await loadProducts();
+      const product = products.find((p) => p.id === productId);
+      if (product) {
+        showModal(product.name, product.description);
+      }
+    });
+  });
+
+  // Add event listeners to all remove buttons
+  const removeButtons = selectedProductsList.querySelectorAll(".remove-btn");
+  removeButtons.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const productId = parseInt(btn.getAttribute("data-id"));
+      // Remove from selectedProducts
+      selectedProducts = selectedProducts.filter((p) => p.id !== productId);
+      updateSelectedProducts();
+      // Redisplay current category so product reappears
+      const products = await loadProducts();
+      const selectedCategory = categoryFilter.value;
+      if (selectedCategory) {
+        const filteredProducts = products.filter(
+          (product) => product.category === selectedCategory
+        );
+        displayProducts(filteredProducts);
+      }
+    });
+  });
+  // ...existing code...
+}
+
+// Show selected products on page load
+window.addEventListener("DOMContentLoaded", async () => {
+  updateSelectedProducts();
+});
+
+/* Show modal with product description */
+function showModal(title, description) {
+  // Create modal HTML
+  const modal = document.createElement("div");
+  modal.className = "modal-bg";
+  modal.innerHTML = `
+    <div class="modal">
+      <h2>${title}</h2>
+      <p>${description}</p>
+      <button class="close-modal">Close</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Close modal on button click or background click
+  modal.querySelector(".close-modal").onclick = () =>
+    document.body.removeChild(modal);
+  modal.onclick = (e) => {
+    if (e.target === modal) document.body.removeChild(modal);
+  };
 }
 
 /* Filter and display products when category changes */
