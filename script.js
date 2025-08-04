@@ -23,6 +23,23 @@ async function loadProducts() {
 // Store selected products in an array
 let selectedProducts = [];
 
+// Load selected products from localStorage if available
+function loadSelectedProducts() {
+  const saved = localStorage.getItem("selectedProducts");
+  if (saved) {
+    try {
+      selectedProducts = JSON.parse(saved);
+    } catch (e) {
+      selectedProducts = [];
+    }
+  }
+}
+
+// Save selected products to localStorage
+function saveSelectedProducts() {
+  localStorage.setItem("selectedProducts", JSON.stringify(selectedProducts));
+}
+
 function displayProducts(products) {
   // Only show products that are not selected
   const unselectedProducts = products.filter(
@@ -66,6 +83,7 @@ function displayProducts(products) {
       const product = products.find((p) => p.id === productId);
       if (product && !selectedProducts.some((p) => p.id === productId)) {
         selectedProducts.push(product);
+        saveSelectedProducts();
         updateSelectedProducts();
         // Remove the product card from the current view only
         btn.closest(".product-card").remove();
@@ -135,6 +153,7 @@ function updateSelectedProducts() {
       const productId = parseInt(btn.getAttribute("data-id"));
       // Remove from selectedProducts
       selectedProducts = selectedProducts.filter((p) => p.id !== productId);
+      saveSelectedProducts();
       updateSelectedProducts();
       // Redisplay current category so product reappears
       const products = await loadProducts();
@@ -147,11 +166,70 @@ function updateSelectedProducts() {
       }
     });
   });
+  // Handle Generate Routine button click
+  const generateRoutineBtn = document.getElementById("generateRoutine");
+  if (generateRoutineBtn) {
+    generateRoutineBtn.addEventListener("click", async () => {
+      if (selectedProducts.length === 0) {
+        chatWindow.innerHTML += `<div class="chat-msg error">Please select at least one product to generate a routine.</div>`;
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        return;
+      }
+      // Build a message describing the selected products
+      const productList = selectedProducts
+        .map((p, i) => `${i + 1}. ${p.name} (${p.brand})`)
+        .join("\n");
+      const userMsg = `Here are the products I've selected:\n${productList}\nCan you create a personalized skincare routine using these products?`;
+      // Add user's message to chat window
+      chatWindow.innerHTML += `<div class="chat-msg user">${userMsg.replace(
+        /\n/g,
+        "<br>"
+      )}</div>`;
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      // Show typing animation for bot
+      const typingBubble = document.createElement("div");
+      typingBubble.className = "chat-msg bot typing";
+      typingBubble.innerHTML = `<span></span><span></span><span></span>`;
+      chatWindow.appendChild(typingBubble);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      // Build messages array with system prompt
+      const messages = [
+        {
+          role: "system",
+          content:
+            "You are a friendly skincare and beauty assistant for L'Oréal. Always reply in a natural, conversational way. Use line breaks or bullet points to make your answers easy to read.",
+        },
+        { role: "user", content: userMsg },
+      ];
+      try {
+        const response = await fetch(
+          "https://routineloreal.emaantovska2005.workers.dev/",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages }),
+          }
+        );
+        const data = await response.json();
+        const botReply =
+          data.choices?.[0]?.message?.content?.replace(/\n/g, "<br>") ||
+          data.reply?.content?.replace(/\n/g, "<br>") ||
+          "Sorry, AI could not be reached.";
+        typingBubble.remove();
+        chatWindow.innerHTML += `<div class="chat-msg bot">${botReply}</div>`;
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      } catch (err) {
+        typingBubble.remove();
+        chatWindow.innerHTML += `<div class="chat-msg error">Error: ${err.message}</div>`;
+      }
+    });
+  }
   // ...existing code...
 }
 
 // Show selected products on page load
 window.addEventListener("DOMContentLoaded", async () => {
+  loadSelectedProducts();
   updateSelectedProducts();
 });
 
@@ -181,30 +259,75 @@ function showModal(title, description) {
 categoryFilter.addEventListener("change", async (e) => {
   const products = await loadProducts();
   const selectedCategory = e.target.value;
-
-  /* filter() creates a new array containing only products 
-     where the category matches what the user selected */
-  const filteredProducts = products.filter(
-    (product) => product.category === selectedCategory
-  );
-
+  const searchValue = document
+    .getElementById("productSearch")
+    .value.trim()
+    .toLowerCase();
+  let filteredProducts = products;
+  if (selectedCategory) {
+    filteredProducts = filteredProducts.filter(
+      (product) => product.category === selectedCategory
+    );
+  }
+  if (searchValue) {
+    filteredProducts = filteredProducts.filter(
+      (product) =>
+        product.name.toLowerCase().includes(searchValue) ||
+        product.description?.toLowerCase().includes(searchValue) ||
+        product.brand?.toLowerCase().includes(searchValue)
+    );
+  }
   displayProducts(filteredProducts);
 });
 
+// Product search field handler
+const productSearch = document.getElementById("productSearch");
+if (productSearch) {
+  productSearch.addEventListener("input", async (e) => {
+    const products = await loadProducts();
+    const searchValue = productSearch.value.trim().toLowerCase();
+    const selectedCategory = categoryFilter.value;
+    let filteredProducts = products;
+    if (selectedCategory) {
+      filteredProducts = filteredProducts.filter(
+        (product) => product.category === selectedCategory
+      );
+    }
+    if (searchValue) {
+      filteredProducts = filteredProducts.filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchValue) ||
+          product.description?.toLowerCase().includes(searchValue) ||
+          product.brand?.toLowerCase().includes(searchValue)
+      );
+    }
+    displayProducts(filteredProducts);
+  });
+}
+
 /* Chat form submission handler - placeholder for OpenAI integration */
-// Handle chat form submit, send user's message to Cloudflare Worker, and display AI response
+// Store chat history for context
+let chatHistory = [];
+
+// Load product data for context
+let allProducts = [];
+loadProducts().then((products) => {
+  allProducts = products;
+});
+
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-
-  // Get user message and clear input
   const userInputElem = document.getElementById("userInput");
   const userMsg = userInputElem.value.trim();
   if (!userMsg) return;
   userInputElem.value = "";
 
-  // Add user's message to chat window (optional, improves user feedback)
+  // Add user's message to chat window
   chatWindow.innerHTML += `<div class="chat-msg user">${userMsg}</div>`;
   chatWindow.scrollTop = chatWindow.scrollHeight;
+
+  // Add user message to chat history
+  chatHistory.push({ role: "user", content: userMsg });
 
   // Show typing animation for bot
   const typingBubble = document.createElement("div");
@@ -213,18 +336,23 @@ chatForm.addEventListener("submit", async (e) => {
   chatWindow.appendChild(typingBubble);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 
-  // Build conversation as an array of messages (role/content format expected by OpenAI)
-  // Add a system prompt to encourage a friendly, conversational tone
-  const messages = [
-    {
-      role: "system",
-      content:
-        "You are a friendly skincare and beauty assistant for L'Oréal. Always reply in a natural, conversational way. Use line breaks or bullet points to make your answers easy to read.",
-    },
-    { role: "user", content: userMsg },
-  ];
+  // Build system prompt with selected products and product info
+  let selectedList = selectedProducts
+    .map((p, i) => `${i + 1}. ${p.name} (${p.brand})`)
+    .join("\n");
+  let productDetails = allProducts
+    .map((p) => `- ${p.name} (${p.brand}): ${p.description}`)
+    .join("\n");
+  const systemPrompt =
+    "You are a friendly skincare and beauty assistant for L'Oréal. Always reply in a natural, conversational way. Use line breaks or bullet points to make your answers easy to read.\n" +
+    "Here are the products the user has selected:\n" +
+    (selectedList ? selectedList + "\n" : "(none)\n") +
+    "Here is information about all available products:\n" +
+    productDetails;
 
-  // POST to your Cloudflare Worker endpoint
+  // Build messages array: system prompt + chat history
+  const messages = [{ role: "system", content: systemPrompt }, ...chatHistory];
+
   try {
     const response = await fetch(
       "https://routineloreal.emaantovska2005.workers.dev/",
@@ -234,15 +362,13 @@ chatForm.addEventListener("submit", async (e) => {
         body: JSON.stringify({ messages }),
       }
     );
-
     const data = await response.json();
-    // For your Worker, the AI's reply is likely at: data.choices[0].message.content
     const botReply =
       data.choices?.[0]?.message?.content?.replace(/\n/g, "<br>") ||
       data.reply?.content?.replace(/\n/g, "<br>") ||
       "Sorry, AI could not be reached.";
-
-    // Remove typing animation and show bot reply as a chat bubble
+    // Add bot reply to chat history
+    chatHistory.push({ role: "assistant", content: botReply });
     typingBubble.remove();
     chatWindow.innerHTML += `<div class="chat-msg bot">${botReply}</div>`;
     chatWindow.scrollTop = chatWindow.scrollHeight;

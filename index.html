@@ -24,8 +24,20 @@
       </header>
 
       <!-- Category Filter -->
-      <div class="search-section">
-        <select id="categoryFilter">
+      <div class="search-section" style="display: flex; gap: 12px">
+        <input
+          type="text"
+          id="productSearch"
+          placeholder="Search products by name or keyword..."
+          style="
+            flex: 2;
+            padding: 16px;
+            font-size: 18px;
+            border: 2px solid #000;
+            border-radius: 8px;
+          "
+        />
+        <select id="categoryFilter" style="flex: 1">
           <option value="" disabled selected>Choose a Category</option>
           <option value="cleanser">Cleansers</option>
           <option value="moisturizer">Moisturizers & Treatments</option>
@@ -46,6 +58,7 @@
       <div class="selected-products">
         <h2>Selected Products</h2>
         <div id="selectedProductsList"></div>
+        <!-- Removed duplicate pink Generate Routine button -->
         <button id="generateRoutine" class="generate-btn">
           <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Routine
         </button>
